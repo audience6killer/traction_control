@@ -34,6 +34,18 @@ typedef struct pid_config
     float kd;
 } pid_config_t;
 
+typedef struct {
+    bdc_motor_handle_t motor;
+    pcnt_unit_handle_t pcnt_encoder;
+    pid_ctrl_block_handle_t pid_ctrl;
+    int report_pulses;
+} motor_control_context_t;
+
+typedef struct {
+    motor_control_context_t motor_left;
+    motor_control_context_t motor_right;
+} traction_control_handle_t;
+
 /**
  * @brief 
  * 
@@ -47,7 +59,7 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
  * 
  * @return esp_error_t 
  */
-esp_err_t traction_task_start(void);
+esp_err_t traction_task_start(traction_control_handle_t *traction_handle);
 
 
 #endif
