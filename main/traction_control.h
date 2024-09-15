@@ -39,25 +39,40 @@ typedef struct {
     pcnt_unit_handle_t pcnt_encoder;
     pid_ctrl_block_handle_t pid_ctrl;
     int report_pulses;
+    int desired_speed;
 } motor_control_context_t;
 
 typedef struct {
-    motor_control_context_t motor_left;
-    motor_control_context_t motor_right;
+    motor_control_context_t motor_left_ctx;
+    motor_control_context_t motor_right_ctx;
 } traction_control_handle_t;
 
 /**
- * @brief 
+ * @brief Initialize the traction control device
  * 
  * @param motor_config 
+ * @param motor_left_pid_config 
+ * @param motor_right_pid_config 
+ * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_control_init(const traction_control_config_t *motor_config, const pid_config_t *motor_left, const pid_config_t *motor_right);
+esp_err_t traction_control_init(const traction_control_config_t *motor_config, const pid_config_t *motor_left_pid_config, const pid_config_t *motor_right_pid_config, traction_control_handle_t *traction_handle);
 
 /**
- * @brief Start traction task
+ * @brief Set the motor desired speed for both motors
  * 
- * @return esp_error_t 
+ * @param motor_left_speed 
+ * @param motor_right_speed 
+ * @param traction_handle 
+ * @return esp_err_t 
+ */
+esp_err_t set_motor_desired_speed(const int *motor_left_speed, const int *motor_right_speed, traction_control_handle_t *traction_handle);
+
+/**
+ * @brief Once the task is started the traction motors will begin to move according to the speed and direciton indicated
+ * 
+ * @param traction_handle 
+ * @return esp_err_t 
  */
 esp_err_t traction_task_start(traction_control_handle_t *traction_handle);
 

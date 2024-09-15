@@ -8,7 +8,8 @@
     },
     "idf.espIdfPath": "/home/vill4in/esp/v5.0/esp-idf",
     "idf.openOcdConfigs": [
-        "board/esp32-wrover-kit-3.3v.cfg"
+        "interface/ftdi/esp32_devkitj_v1.cfg",
+        "target/esp32.cfg"
     ],
     "idf.port": "/dev/ttyS0",
     "idf.pythonBinPath": "/home/vill4in/.espressif/python_env/idf5.0_py3.10_env/bin/python",

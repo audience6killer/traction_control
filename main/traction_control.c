@@ -32,24 +32,64 @@
 
 static const char *TAG = "TRACTION_CTRL";
 
-typedef struct {
-    bdc_motor_handle_t motor;
-    pcnt_unit_handle_t pcnt_encoder;
-    pid_ctrl_block_handle_t pid_ctrl;
-    int report_pulses;
-} motor_control_context_t;
-
-typedef struct {
-    motor_control_context_t motor_left_ctx;
-    motor_control_context_t motor_right_ctx;
-} traction_control_handle_t;
 
 static void pid_loop_callback(void *args)
 {
-    
+    static int motor_left_last_pulse_count = 0;
+    static int motor_right_last_pulse_count = 0;
+
+    traction_control_handle_t *traction_handle = (traction_control_handle_t *)args;
+
+    motor_control_context_t motor_right_ctx = traction_handle->motor_right_ctx; 
+    motor_control_context_t motor_left_ctx = traction_handle->motor_left_ctx;
+
+    // Get result from rotary encoder
+    int motor_left_cur_pulse_count = 0;
+    int motor_right_cur_pulse_count = 0;
+    pcnt_unit_get_count(motor_left_ctx.pcnt_encoder, &motor_left_cur_pulse_count);
+    pcnt_unit_get_count(motor_right_ctx.pcnt_encoder, &motor_right_cur_pulse_count);
+
+    int motor_left_real_pulses = motor_left_cur_pulse_count - motor_left_last_pulse_count;
+    int motor_right_real_pulses = motor_right_cur_pulse_count - motor_right_last_pulse_count;
+
+    motor_right_last_pulse_count = motor_right_cur_pulse_count;
+    motor_left_last_pulse_count = motor_left_cur_pulse_count;
+
+    motor_right_ctx.report_pulses = motor_right_real_pulses;
+    motor_left_ctx.report_pulses = motor_left_real_pulses;
+
+    // Calculate speed error
+    float motor_left_error = motor_left_ctx.desired_speed - motor_left_real_pulses;
+    float motor_right_error = motor_right_ctx.desired_speed - 
+    motor_right_real_pulses;
+
+    float motor_right_new_speed = 0;
+    float motor_left_new_speed = 0;
+
+    // Set the new speed
+    pid_compute(motor_right_ctx.pid_ctrl, motor_right_error, &motor_right_new_speed);
+    pid_compute(motor_left_ctx.pid_ctrl, motor_left_error, &motor_left_new_speed);
+
+    bdc_motor_set_speed(motor_right_ctx.motor, (uint32_t)motor_right_new_speed);
+    bdc_motor_set_speed(motor_left_ctx.motor, (uint32_t)motor_left_new_speed);
+
 }
 
-esp_err_t traction_control_init(const traction_control_config_t *motor_config, const pid_config_t *motor_left_pid_config, const pid_config_t *motor_right_pid_config, traction_control_handle_t *traction_handle)
+esp_err_t set_motor_desired_speed(const int *motor_left_speed, const int *motor_right_speed, traction_control_handle_t *traction_handle)
+{
+    if(motor_left_speed != NULL)
+    {
+        traction_handle->motor_left_ctx.desired_speed = *motor_left_speed;
+    }
+    if(motor_right_speed != NULL)
+    {
+        traction_handle->motor_right_ctx.desired_speed = *motor_right_speed;
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t traction_control_init(const traction_control_config_t *motor_config, const pid_config_t *motor_left_pid_gains, const pid_config_t *motor_right_pid_gains, traction_control_handle_t *traction_handle)
 {
 
     traction_handle->motor_left_ctx.pcnt_encoder = NULL;
@@ -160,9 +200,9 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
     /* PID control init*/
     ESP_LOGI(TAG, "Create PID control block");
     pid_ctrl_parameter_t motor_left_pid_runtime_param = {
-        .kp = motor_left_pid_config->kp,
-        .ki = motor_left_pid_config->ki,
-        .kd = motor_left_pid_config->kd,
+        .kp = motor_left_pid_gains->kp,
+        .ki = motor_left_pid_gains->ki,
+        .kd = motor_left_pid_gains->kd,
         .cal_type = PID_CAL_TYPE_INCREMENTAL,
         .max_output = BDC_MCPWM_TIMER_RESOLUTION_HZ / motor_config->pwm_freq_hz,
         .min_output = 0,
@@ -170,9 +210,9 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
         .min_integral = -1000,
     };
     pid_ctrl_parameter_t motor_right_pid_runtime_param = {
-        .kp = motor_right_pid_config->kp,
-        .ki = motor_right_pid_config->ki,
-        .kd = motor_right_pid_config->kd,
+        .kp = motor_right_pid_gains->kp,
+        .ki = motor_right_pid_gains->ki,
+        .kd = motor_right_pid_gains->kd,
         .cal_type = PID_CAL_TYPE_INCREMENTAL,
         .max_output = BDC_MCPWM_TIMER_RESOLUTION_HZ / motor_config->pwm_freq_hz,
         .min_output = 0,
@@ -192,16 +232,6 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
     ESP_ERROR_CHECK(pid_new_control_block(&motor_left_pid_config, &motor_left_pid_ctrl));
     ESP_ERROR_CHECK(pid_new_control_block(&motor_right_pid_config, &motor_right_pid_ctrl));
 
-    pid_ctrl_parameter_t motor_left_pid_runtime_param = {
-        .kp = motor_left_pid_config->kp,
-        .ki = motor_left_pid_config->ki,
-        .kd = motor_left_pid_config->kd,
-        .cal_type = PID_CAL_TYPE_INCREMENTAL,
-        .max_output = BDC_MCPWM_TIMER_RESOLUTION_HZ / motor_config->pwm_freq_hz,
-        .min_output = 0,
-        .max_integral = 1000,
-        .min_integral = -1000,
-    };
     traction_handle->motor_right_ctx.pid_ctrl = motor_right_pid_ctrl;
     traction_handle->motor_left_ctx.pid_ctrl = motor_left_pid_ctrl;
 
@@ -247,7 +277,7 @@ esp_err_t traction_control_task(void *pvParameter)
 
     for(;;)
     {
-        vTaskDelay(pdMs_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(100));
     }   
 }
 
