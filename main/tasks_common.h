@@ -38,8 +38,8 @@
 #define MOTOR_RIGHT_KI                  0.4
 #define MOTOR_RIGHT_KD                  0.2
 
-#define MOTOR_LEFT_DESIRED_SPEED        100
-#define MOTOR_RIGHT_DESIRED_SPEED       100
+#define MOTOR_LEFT_DESIRED_SPEED        5
+#define MOTOR_RIGHT_DESIRED_SPEED       10
 
 #define SERIAL_DEBUG_ENABLE             true
 

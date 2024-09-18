@@ -35,12 +35,20 @@ typedef struct {
     float kd;
 } pid_config_t;
 
+typedef enum motor_state {
+    BREAK,     // Stop motor in a break way (Slow decay)
+    FORWARD,
+    REVERSE,
+    COAST,     // Stop motor in a coast way (aka Fast Decay)
+} motor_state_e;
+
 typedef struct {
     bdc_motor_handle_t motor;
     pcnt_unit_handle_t pcnt_encoder;
     pid_ctrl_block_handle_t pid_ctrl;
     int report_pulses;
     int desired_speed;
+    motor_state_e motor_state;
 } motor_control_context_t;
 
 typedef struct {
@@ -70,12 +78,82 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
 esp_err_t traction_set_motors_desired_speed(const int motor_left_speed, const int motor_right_speed, traction_control_handle_t *traction_handle);
 
 /**
+ * @brief 
+ * 
+ * @param speed 
+ * @param traction_handle 
+ * @return esp_err_t 
+ */
+esp_err_t traction_set_forward(const int *speed, traction_control_handle_t *traction_handle);
+
+/**
+ * @brief 
+ * 
+ * @param speed 
+ * @param traction_handle 
+ * @return esp_err_t 
+ */
+esp_err_t traction_set_reverse(const int *speed, traction_control_handle_t *traction_handle);
+
+/**
+ * @brief 
+ * 
+ * @param traction_handle 
+ * @return esp_err_t 
+ */
+esp_err_t traction_set_break(traction_control_handle_t *traction_handle);
+
+/**
+ * @brief 
+ * 
+ * @param traction_handle 
+ * @return esp_err_t 
+ */
+esp_err_t traction_set_coast(traction_control_handle_t *traction_handle);
+
+/**
+ * @brief 
+ * 
+ * @param speed 
+ * @param traction_handle 
+ * @return esp_err_t 
+ */
+esp_err_t traction_set_turn_left(const int *speed, traction_control_handle_t *traction_handle);
+
+/**
+ * @brief 
+ * 
+ * @param speed 
+ * @param traction_handle 
+ * @return esp_err_t 
+ */
+esp_err_t traction_set_turn_right(const int *speed, traction_control_handle_t *traction_handle);
+
+/**
+ * @brief 
+ * 
+ * @param speed 
+ * @param traction_handle 
+ * @return esp_err_t 
+ */
+esp_err_t traction_set_reverse_left(const int *speed, traction_control_handle_t *traction_handle);
+
+/**
+ * @brief 
+ * 
+ * @param speed 
+ * @param traction_handle 
+ * @return esp_err_t 
+ */
+esp_err_t traction_set_reverse_right(const int *speed, traction_control_handle_t *traction_handle);
+
+/**
  * @brief Once the task is started the traction motors will begin to move according to the speed and direciton indicated
  * 
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_task_start(traction_control_handle_t *traction_handle);
+esp_err_t traction_task_start();
 
 
 #endif

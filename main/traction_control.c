@@ -231,7 +231,37 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
 
 static void traction_control_task(void *pvParameter)
 {
-    traction_control_handle_t *traction_handle = (traction_control_handle_t *)pvParameter;
+    // traction_control_handle_t *traction_handle = (traction_control_handle_t *)pvParameter;
+
+    traction_control_config_t traction_config = {
+        .motor_left_pwma_gpio_num = TRACTION_MOTOR_LEFT_PWMA,
+        .motor_left_pwmb_gpio_num = TRACTION_MOTOR_LEFT_PWMB,
+        .motor_right_pwma_gpio_num = TRACTION_MOTOR_RIGHT_PWMA,
+        .motor_right_pwmb_gpio_num = TRACTION_MOTOR_RIGHT_PWMB,
+        .motor_left_encodera_gpio_num = TRACTION_MOTOR_LEFT_ENCODER_A,
+        .motor_left_encoderb_gpio_num = TRACTION_MOTOR_LEFT_ENCODER_B,
+        .motor_right_encodera_gpio_num = TRACTION_MOTOR_RIGHT_ENCODER_A,
+        .motor_right_encoderb_gpio_num = TRACTION_MOTOR_RIGHT_ENCODER_B,
+        .pwm_freq_hz = TRACTION_MOTORS_PWM_FREQ,
+    };
+
+    pid_config_t motor_left_pid_config = {
+        .kp = MOTOR_LEFT_KP,
+        .ki = MOTOR_LEFT_KI,
+        .kd = MOTOR_LEFT_KD,
+    };
+
+    pid_config_t motor_right_pid_config = {
+        .kp = MOTOR_RIGHT_KP,
+        .ki = MOTOR_LEFT_KI,
+        .kd = MOTOR_RIGHT_KD,
+    };
+
+    traction_control_handle_t *traction_handle = malloc(sizeof(traction_control_handle_t));
+    
+    traction_control_init(&traction_config, &motor_left_pid_config, &motor_right_pid_config, traction_handle);
+
+    traction_set_motors_desired_speed((const int)MOTOR_LEFT_DESIRED_SPEED, (const int)MOTOR_RIGHT_DESIRED_SPEED, traction_handle);
 
     ESP_ERROR_CHECK(pcnt_unit_enable(traction_handle->motor_left_ctx.pcnt_encoder));
     ESP_ERROR_CHECK(pcnt_unit_enable(traction_handle->motor_right_ctx.pcnt_encoder));
@@ -273,15 +303,15 @@ static void traction_control_task(void *pvParameter)
         
         printf("/*speed_left,%d; speed_right, %d*/\r\n", traction_handle->motor_left_ctx.report_pulses, traction_handle->motor_right_ctx.report_pulses);
         
-        #endif // 
+        #endif 
         
     }   
 }
 
-esp_err_t traction_task_start(traction_control_handle_t *traction_handle)
+esp_err_t traction_task_start()
 {
     ESP_LOGI(TAG, "traction_control: Creating task");
-    xTaskCreatePinnedToCore(&traction_control_task, "traction_task", 4096,traction_handle, TRACTION_CONTROL_TASK_PRIORITY, NULL, TRACTION_CONTROL_CORE_ID);
+    xTaskCreatePinnedToCore(&traction_control_task, "traction_task", 4096, NULL, TRACTION_CONTROL_TASK_PRIORITY, NULL, TRACTION_CONTROL_CORE_ID);
 
     return ESP_OK;
 }
