@@ -11,8 +11,9 @@
         "interface/ftdi/esp32_devkitj_v1.cfg",
         "target/esp32.cfg"
     ],
-    "idf.port": "/dev/ttyS0",
+    "idf.port": "/dev/ttyUSB0",
     "idf.pythonBinPath": "/home/vill4in/.espressif/python_env/idf5.0_py3.10_env/bin/python",
     "idf.toolsPath": "/home/vill4in/.espressif",
-    "editor.wordWrap": "on"
+    "editor.wordWrap": "on",
+    "idf.flashType": "UART"
 }

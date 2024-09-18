@@ -16,19 +16,9 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "esp_timer.h"
-#include "driver/pulse_cnt.h"
-#include "bdc_motor.h"
-#include "pid_ctrl.h"
 
 #include "traction_control.h"
-
-#define TRACTION_CONTROL_TASK_PRIORITY  2
-#define TRACTION_CONTROL_CORE_ID        0
-
-#define BDC_MCPWM_TIMER_RESOLUTION_HZ   1000000 // 10MHz, 1 tick = 0.1us
-#define BDC_ENCODER_PCNT_HIGH_LIMIT     2000
-#define BDC_ENCODER_PCNT_LOW_LIMIT      -2000
-#define BDC_PID_LOOP_PERIOD_MS          10
+#include "tasks_common.h"
 
 static const char *TAG = "TRACTION_CTRL";
 
@@ -55,8 +45,8 @@ static void pid_loop_callback(void *args)
     motor_right_last_pulse_count = motor_right_cur_pulse_count;
     motor_left_last_pulse_count = motor_left_cur_pulse_count;
 
-    motor_right_ctx.report_pulses = motor_right_real_pulses;
-    motor_left_ctx.report_pulses = motor_left_real_pulses;
+    traction_handle->motor_right_ctx.report_pulses = motor_right_real_pulses;
+    traction_handle->motor_left_ctx.report_pulses = motor_left_real_pulses;
 
     // Calculate speed error
     float motor_left_error = motor_left_ctx.desired_speed - motor_left_real_pulses;
@@ -75,15 +65,15 @@ static void pid_loop_callback(void *args)
 
 }
 
-esp_err_t set_motor_desired_speed(const int *motor_left_speed, const int *motor_right_speed, traction_control_handle_t *traction_handle)
+esp_err_t traction_set_motors_desired_speed(const int motor_left_speed, const int motor_right_speed, traction_control_handle_t *traction_handle)
 {
-    if(motor_left_speed != NULL)
+    if(motor_left_speed != -1)
     {
-        traction_handle->motor_left_ctx.desired_speed = *motor_left_speed;
+        traction_handle->motor_left_ctx.desired_speed = motor_left_speed;
     }
-    if(motor_right_speed != NULL)
+    if(motor_right_speed != -1)
     {
-        traction_handle->motor_right_ctx.desired_speed = *motor_right_speed;
+        traction_handle->motor_right_ctx.desired_speed = motor_right_speed;
     }
 
     return ESP_OK;
@@ -239,7 +229,7 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
 
 }
 
-esp_err_t traction_control_task(void *pvParameter)
+static void traction_control_task(void *pvParameter)
 {
     traction_control_handle_t *traction_handle = (traction_control_handle_t *)pvParameter;
 
@@ -278,6 +268,13 @@ esp_err_t traction_control_task(void *pvParameter)
     for(;;)
     {
         vTaskDelay(pdMS_TO_TICKS(100));
+
+        #if SERIAL_DEBUG_ENABLE
+        
+        printf("/*speed_left,%d; speed_right, %d*/\r\n", traction_handle->motor_left_ctx.report_pulses, traction_handle->motor_right_ctx.report_pulses);
+        
+        #endif // 
+        
     }   
 }
 

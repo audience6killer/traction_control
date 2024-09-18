@@ -13,9 +13,11 @@
 #define MAIN_TRACTION_CONTROL_H
 
 #include <stdint.h>
+#include "driver/pulse_cnt.h"
+#include "bdc_motor.h"
+#include "pid_ctrl.h"
 
-typedef struct traction_control_config
-{
+typedef struct {
     uint32_t motor_left_pwma_gpio_num;      /*Motor 1 PWM A gpio number */
     uint32_t motor_left_pwmb_gpio_num;      /*Motor 1 PWM B gpio number */
     uint32_t motor_right_pwma_gpio_num;     /*Motor 2 PWM A gpio number */
@@ -27,8 +29,7 @@ typedef struct traction_control_config
     uint32_t pwm_freq_hz;      /*PWM frequency for both motors */
 } traction_control_config_t;
 
-typedef struct pid_config
-{
+typedef struct {
     float kp;
     float ki;
     float kd;
@@ -66,7 +67,7 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t set_motor_desired_speed(const int *motor_left_speed, const int *motor_right_speed, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_motors_desired_speed(const int motor_left_speed, const int motor_right_speed, traction_control_handle_t *traction_handle);
 
 /**
  * @brief Once the task is started the traction motors will begin to move according to the speed and direciton indicated
