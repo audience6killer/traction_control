@@ -35,11 +35,15 @@ typedef struct {
     float kd;
 } pid_config_t;
 
-typedef enum motor_state {
+typedef enum {
     BREAK,     // Stop motor in a break way (Slow decay)
+    COAST,     // Stop motor in a coast way (aka Fast Decay) 
     FORWARD,
     REVERSE,
-    COAST,     // Stop motor in a coast way (aka Fast Decay)
+    TURN_LEFT_FORWARD, // All turns are on its axis
+    TURN_RIGHT_FORWARD,
+    TURN_LEFT_REVERSE,
+    TURN_RIGHT_REVERSE,
 } motor_state_e;
 
 typedef struct {
@@ -47,13 +51,15 @@ typedef struct {
     pcnt_unit_handle_t pcnt_encoder;
     pid_ctrl_block_handle_t pid_ctrl;
     int report_pulses;
-    int desired_speed;
-    motor_state_e motor_state;
+    int desired_speed; // JUST FOR TESTING, SPEED SHOULD BE EQUAL FOR BOTH MOTORS
 } motor_control_context_t;
 
 typedef struct {
     motor_control_context_t motor_left_ctx;
     motor_control_context_t motor_right_ctx;
+    motor_state_e traction_state;
+    int mov_speed; // Should be always positive
+    // TODO: Refactor to uint8 or uint16
 } traction_control_handle_t;
 
 /**
@@ -84,7 +90,7 @@ esp_err_t traction_set_motors_desired_speed(const int motor_left_speed, const in
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_set_forward(const int *speed, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_forward(const int speed, traction_control_handle_t *traction_handle);
 
 /**
  * @brief 

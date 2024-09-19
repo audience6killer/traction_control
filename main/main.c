@@ -6,6 +6,7 @@
 void app_main(void)
 {
 
-    traction_task_start();
+    traction_control_handle_t *traction_handle;
+    traction_task_start(traction_handle); 
 
 }
