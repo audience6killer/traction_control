@@ -44,6 +44,7 @@ typedef enum {
     TURN_RIGHT_FORWARD,
     TURN_LEFT_REVERSE,
     TURN_RIGHT_REVERSE,
+    NONE
 } motor_state_e;
 
 typedef struct {
@@ -81,25 +82,23 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_set_motors_desired_speed(const int motor_left_speed, const int motor_right_speed, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_desired_speed(const int speed, traction_control_handle_t *traction_handle);
 
 /**
  * @brief 
  * 
- * @param speed 
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_set_forward(const int speed, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_forward(traction_control_handle_t *traction_handle);
 
 /**
  * @brief 
  * 
- * @param speed 
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_set_reverse(const int *speed, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_reverse(traction_control_handle_t *traction_handle);
 
 /**
  * @brief 
@@ -124,7 +123,7 @@ esp_err_t traction_set_coast(traction_control_handle_t *traction_handle);
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_set_turn_left(const int *speed, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_turn_left_forward(traction_control_handle_t *traction_handle);
 
 /**
  * @brief 
@@ -133,7 +132,8 @@ esp_err_t traction_set_turn_left(const int *speed, traction_control_handle_t *tr
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_set_turn_right(const int *speed, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_turn_right_forward(const int *speed, traction_control_handle_t *traction_handle);
+
 
 /**
  * @brief 
@@ -142,7 +142,7 @@ esp_err_t traction_set_turn_right(const int *speed, traction_control_handle_t *t
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_set_reverse_left(const int *speed, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_turn_right_reverse(traction_control_handle_t *traction_handle);
 
 /**
  * @brief 
@@ -151,7 +151,7 @@ esp_err_t traction_set_reverse_left(const int *speed, traction_control_handle_t 
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_set_reverse_right(const int *speed, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_turn_left_reverse(traction_control_handle_t *traction_handle);
 
 /**
  * @brief Once the task is started the traction motors will begin to move according to the speed and direciton indicated
@@ -159,7 +159,7 @@ esp_err_t traction_set_reverse_right(const int *speed, traction_control_handle_t
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_task_start();
+esp_err_t traction_task_start(traction_control_handle_t *traction_handle);
 
 
 #endif

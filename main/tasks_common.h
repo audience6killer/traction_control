@@ -40,6 +40,10 @@
 
 #define MOTOR_LEFT_DESIRED_SPEED        5
 #define MOTOR_RIGHT_DESIRED_SPEED       10
+#define TRACTION_DESIRED_SPEED          10
+
+#define MOTOR_LEFT_MAX_SPEED            50
+#define MOTOR_RIGHT_MAX_SPEED           38
 
 #define SERIAL_DEBUG_ENABLE             true
 
