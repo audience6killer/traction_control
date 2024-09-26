@@ -13,7 +13,6 @@ const char *TAG = "VEHICLE_CONTROL_TEST";
 static void vehicle_control_test_task(traction_control_handle_t *traction_handle)
 {
     const int traction_speed = 10;
-    traction_handle->traction_state = FORWARD;
     traction_set_desired_speed(traction_speed, traction_handle);
     for (;;)
     {

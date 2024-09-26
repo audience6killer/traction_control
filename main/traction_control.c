@@ -41,7 +41,7 @@ static void pid_loop_callback(void *args)
 
     static int motor_left_desired_speed = 0;
     static int motor_right_desired_speed = 0;
-    
+
     traction_control_handle_t *traction_handle = (traction_control_handle_t *)args;
 
     motor_control_context_t *motor_right_ctx = &traction_handle->motor_right_ctx;
@@ -53,6 +53,9 @@ static void pid_loop_callback(void *args)
     pcnt_unit_get_count(motor_left_ctx->pcnt_encoder, &motor_left_cur_pulse_count);
     pcnt_unit_get_count(motor_right_ctx->pcnt_encoder, &motor_right_cur_pulse_count);
 
+    /*The sign of the speed doesn't matter, as the forward and reverse of the motor
+    will control the direction of the spin
+    */
     int motor_left_real_pulses = abs(motor_left_cur_pulse_count - motor_left_last_pulse_count);
     int motor_right_real_pulses = abs(motor_right_cur_pulse_count - motor_right_last_pulse_count);
 
@@ -63,7 +66,6 @@ static void pid_loop_callback(void *args)
     traction_handle->motor_left_ctx.report_pulses = motor_left_real_pulses;
 
     /* Check whether the state has changed */
-    //ESP_LOGI(TAG, "Current_state: %d", traction_handle->traction_state);
     motor_left_desired_speed = motor_left_ctx->desired_speed;
     motor_right_desired_speed = motor_right_ctx->desired_speed;
 
@@ -87,8 +89,6 @@ static void pid_loop_callback(void *args)
         case FORWARD:
             ESP_ERROR_CHECK(bdc_motor_forward(traction_handle->motor_left_ctx.motor));
             ESP_ERROR_CHECK(bdc_motor_forward(traction_handle->motor_right_ctx.motor));
-            motor_left_desired_speed = motor_left_ctx->desired_speed;
-            motor_right_desired_speed = motor_right_ctx->desired_speed;
             ESP_LOGI(TAG, "FORWARD");
             break;
         case REVERSE:
@@ -118,8 +118,6 @@ static void pid_loop_callback(void *args)
             break;
         default:
             ESP_LOGI(TAG, "ERRORRRRRRRRR");
-            ESP_ERROR_CHECK(bdc_motor_forward(traction_handle->motor_left_ctx.motor));
-            ESP_ERROR_CHECK(bdc_motor_forward(traction_handle->motor_right_ctx.motor));
             break;
         }
     }
@@ -129,9 +127,8 @@ static void pid_loop_callback(void *args)
         return;
 
     // Calculate speed error
-    float motor_left_error = motor_left_desired_speed - motor_left_real_pulses;
-    float motor_right_error = motor_right_desired_speed -
-                              motor_right_real_pulses;
+    float motor_left_error = motor_left_ctx->desired_speed - motor_left_real_pulses;
+    float motor_right_error = motor_right_ctx->desired_speed - motor_right_real_pulses;
 
     float motor_right_new_speed = 0;
     float motor_left_new_speed = 0;
@@ -142,12 +139,11 @@ static void pid_loop_callback(void *args)
     pid_compute(motor_right_ctx->pid_ctrl, motor_right_error, &motor_right_new_speed);
     pid_compute(motor_left_ctx->pid_ctrl, motor_left_error, &motor_left_new_speed);
 
-    //ESP_LOGI(TAG, "m_l_new_speed: %f", motor_left_new_speed);
-    //ESP_LOGI(TAG, "desired_speed: %d, current_speed: %d, LEFT_ERROR: %f", motor_left_desired_speed,  motor_left_real_pulses, motor_left_error);
-    //ESP_LOGI(TAG, "desired_speed: %d, current_speed: %d, LEFT_ERROR: %f", motor_right_desired_speed,  motor_right_real_pulses, motor_right_error);
+    // ESP_LOGI(TAG, "m_l_new_speed: %f", motor_left_new_speed);
+    // ESP_LOGI(TAG, "desired_speed: %d, current_speed: %d, LEFT_ERROR: %f", motor_left_desired_speed,  motor_left_real_pulses, motor_left_error);
+    // ESP_LOGI(TAG, "desired_speed: %d, current_speed: %d, LEFT_ERROR: %f", motor_right_desired_speed,  motor_right_real_pulses, motor_right_error);
     bdc_motor_set_speed(motor_right_ctx->motor, (uint32_t)motor_right_new_speed);
     bdc_motor_set_speed(motor_left_ctx->motor, (uint32_t)motor_left_new_speed);
-    
 }
 
 esp_err_t traction_set_motors_desired_speed(const int motor_left_speed, const int motor_right_speed, traction_control_handle_t *traction_handle)
@@ -166,7 +162,7 @@ esp_err_t traction_set_motors_desired_speed(const int motor_left_speed, const in
 
 esp_err_t traction_set_desired_speed(const int speed, traction_control_handle_t *traction_handle)
 {
-    //traction_handle->mov_speed = malloc(size(int));
+    // traction_handle->mov_speed = malloc(size(int));
     if (speed <= MAX(MOTOR_LEFT_MAX_SPEED, MOTOR_RIGHT_MAX_SPEED))
     {
         traction_handle->mov_speed = speed;
@@ -291,7 +287,7 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
         .kd = motor_left_pid_gains->kd,
         .cal_type = PID_CAL_TYPE_INCREMENTAL,
         .max_output = BDC_MCPWM_TIMER_RESOLUTION_HZ / motor_config->pwm_freq_hz,
-        .min_output = 0, 
+        .min_output = 0,
         .max_integral = 1000,
         .min_integral = -1000,
     };
@@ -301,7 +297,7 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
         .kd = motor_right_pid_gains->kd,
         .cal_type = PID_CAL_TYPE_INCREMENTAL,
         .max_output = BDC_MCPWM_TIMER_RESOLUTION_HZ / motor_config->pwm_freq_hz,
-        .min_output = 0, 
+        .min_output = 0,
         .max_integral = 1000,
         .min_integral = -1000,
     };
@@ -384,9 +380,7 @@ static void traction_control_task(void *pvParameter)
 {
     traction_control_handle_t *traction_handle = (traction_control_handle_t *)pvParameter;
 
-    //traction_handle = malloc(sizeof(traction_control_handle_t));
-
-    traction_handle->traction_state = TURN_RIGHT_FORWARD;
+    traction_handle->traction_state = BREAK;
 
     traction_control_config_t traction_config = {
         .motor_left_pwma_gpio_num = TRACTION_MOTOR_LEFT_PWMA,
@@ -414,8 +408,7 @@ static void traction_control_task(void *pvParameter)
 
     traction_control_init(&traction_config, &motor_left_pid_config, &motor_right_pid_config, traction_handle);
 
-    /* TEST ONLY */
-    traction_set_desired_speed((const int)TRACTION_DESIRED_SPEED, traction_handle);
+    traction_set_desired_speed(0, traction_handle); // Init to zero the speed
 
     ESP_ERROR_CHECK(pcnt_unit_enable(traction_handle->motor_left_ctx.pcnt_encoder));
     ESP_ERROR_CHECK(pcnt_unit_enable(traction_handle->motor_right_ctx.pcnt_encoder));
