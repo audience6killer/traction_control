@@ -44,7 +44,6 @@ typedef enum {
     TURN_RIGHT_FORWARD,
     TURN_LEFT_REVERSE,
     TURN_RIGHT_REVERSE,
-    NONE
 } motor_state_e;
 
 typedef struct {
@@ -132,7 +131,7 @@ esp_err_t traction_set_turn_left_forward(traction_control_handle_t *traction_han
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_set_turn_right_forward(const int *speed, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_turn_right_forward(traction_control_handle_t *traction_handle);
 
 
 /**
