@@ -10,47 +10,47 @@
 
 const char *TAG = "VEHICLE_CONTROL_TEST";
 
-static void vehicle_control_test_task(traction_control_handle_t *traction_handle)
+static void vehicle_control_test_task(void *pvParameters)
 {
-    const int traction_speed = 10;
-    traction_set_desired_speed(traction_speed, traction_handle);
+    const float traction_speed = 1.688;
+    traction_set_desired_speed(traction_speed);
     for (;;)
     {
         ESP_LOGI(TAG, "FORWARD");
-        ESP_ERROR_CHECK(traction_set_forward(traction_handle));
+        ESP_ERROR_CHECK(traction_set_direction(FORWARD));
         vTaskDelay(pdMS_TO_TICKS(5000));
         ESP_LOGI(TAG, "BREAK");
-        ESP_ERROR_CHECK(traction_set_break(traction_handle));
+        ESP_ERROR_CHECK(traction_set_direction(BREAK));
         vTaskDelay(pdMS_TO_TICKS(500));
         ESP_LOGI(TAG, "REVERSE");
-        ESP_ERROR_CHECK(traction_set_reverse(traction_handle));
+        ESP_ERROR_CHECK(traction_set_direction(REVERSE));
         vTaskDelay(pdMS_TO_TICKS(5000));
         ESP_LOGI(TAG, "BREAK");
-        ESP_ERROR_CHECK(traction_set_break(traction_handle));
+        ESP_ERROR_CHECK(traction_set_direction(BREAK));
         vTaskDelay(pdMS_TO_TICKS(500));
         ESP_LOGI(TAG, "REVERSE");
-        ESP_ERROR_CHECK(traction_set_forward(traction_handle));
+        ESP_ERROR_CHECK(traction_set_direction(REVERSE));
         vTaskDelay(pdMS_TO_TICKS(5000));
         ESP_LOGI(TAG, "TURN LEFT FORWARD");
-        ESP_ERROR_CHECK(traction_set_turn_left_forward(traction_handle));
+        ESP_ERROR_CHECK(traction_set_direction(TURN_LEFT_FORWARD));
         vTaskDelay(pdMS_TO_TICKS(5000));
         ESP_LOGI(TAG, "TURN RIGHT FORWARD");
-        ESP_ERROR_CHECK(traction_set_turn_right_forward(traction_handle));
+        ESP_ERROR_CHECK(traction_set_direction(TURN_RIGHT_FORWARD));
         vTaskDelay(pdMS_TO_TICKS(5000));
         ESP_LOGI(TAG, "TURN LEFT REVERSE");
-        ESP_ERROR_CHECK(traction_set_turn_left_reverse(traction_handle));
+        ESP_ERROR_CHECK(traction_set_direction(TURN_LEFT_REVERSE));
         vTaskDelay(pdMS_TO_TICKS(5000));
         ESP_LOGI(TAG, "TURN RIGHT REVERSE");
-        ESP_ERROR_CHECK(traction_set_turn_right_reverse(traction_handle));
+        ESP_ERROR_CHECK(traction_set_direction(TURN_RIGHT_REVERSE));
         vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
 
-esp_err_t vehicle_control_test_task_start(traction_control_handle_t *traction_handle)
+esp_err_t vehicle_control_test_task_start(void)
 {
     ESP_LOGI(TAG, "Creating task");
 
-    xTaskCreatePinnedToCore(&vehicle_control_test_task, "vehicle_test_task", 4096, traction_handle, VEHICLE_TEST_TASK_PRIORITY, NULL, TRACTION_CONTROL_CORE_ID);
+    xTaskCreatePinnedToCore(&vehicle_control_test_task, "vehicle_test_task", 4096, NULL, VEHICLE_TEST_TASK_PRIORITY, NULL, TRACTION_CONTROL_CORE_ID);
 
     return ESP_OK;
 }

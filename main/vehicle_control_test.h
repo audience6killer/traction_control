@@ -5,7 +5,7 @@
 #include "traction_control.h"
 
 
-esp_err_t vehicle_control_test_task_start(traction_control_handle_t *traction_handle);
+esp_err_t vehicle_control_test_task_start(void);
 
 
 #endif

@@ -46,6 +46,12 @@
 #define MOTOR_LEFT_MAX_SPEED            50
 #define MOTOR_RIGHT_MAX_SPEED           38
 
+#define MOTOR_RIGHT_MAX_SPEED_REVS      1.03
+#define MOTOR_LEFT_MAX_SPEED_REVS       5.876
+
+#define MOTOR_RIGHT_REVS2PULSES         20 / 1.03
+#define MOTOR_LEFT_REV2PULSES           10 / 1.13
+
 #define SERIAL_DEBUG_ENABLE             true
 
 #endif

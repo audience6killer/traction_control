@@ -51,114 +51,39 @@ typedef struct {
     pcnt_unit_handle_t pcnt_encoder;
     pid_ctrl_block_handle_t pid_ctrl;
     int report_pulses;
-    int desired_speed; // JUST FOR TESTING, SPEED SHOULD BE EQUAL FOR BOTH MOTORS
+    int desired_speed;  // In pulses 
 } motor_control_context_t;
 
 typedef struct {
     motor_control_context_t motor_left_ctx;
     motor_control_context_t motor_right_ctx;
     motor_state_e traction_state;
-    int mov_speed; // Should be always positive
-    // TODO: Refactor to uint8 or uint16
+    float mov_speed; // Should be always positive
 } traction_control_handle_t;
 
 /**
- * @brief Initialize the traction control device
+ * @brief Set traction speed. This speed value will apply for both motors
  * 
- * @param motor_config 
- * @param motor_left_pid_config 
- * @param motor_right_pid_config 
+ * @param speed in rev/s
  * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_control_init(const traction_control_config_t *motor_config, const pid_config_t *motor_left_pid_config, const pid_config_t *motor_right_pid_config, traction_control_handle_t *traction_handle);
+esp_err_t traction_set_desired_speed(const float speed);
 
 /**
- * @brief Set the motor desired speed for both motors
+ * @brief Set traction current direction
  * 
- * @param motor_left_speed 
- * @param motor_right_speed 
- * @param traction_handle 
+ * @param direction 
  * @return esp_err_t 
  */
-esp_err_t traction_set_desired_speed(const int speed, traction_control_handle_t *traction_handle);
-
-/**
- * @brief 
- * 
- * @param traction_handle 
- * @return esp_err_t 
- */
-esp_err_t traction_set_forward(traction_control_handle_t *traction_handle);
-
-/**
- * @brief 
- * 
- * @param traction_handle 
- * @return esp_err_t 
- */
-esp_err_t traction_set_reverse(traction_control_handle_t *traction_handle);
-
-/**
- * @brief 
- * 
- * @param traction_handle 
- * @return esp_err_t 
- */
-esp_err_t traction_set_break(traction_control_handle_t *traction_handle);
-
-/**
- * @brief 
- * 
- * @param traction_handle 
- * @return esp_err_t 
- */
-esp_err_t traction_set_coast(traction_control_handle_t *traction_handle);
-
-/**
- * @brief 
- * 
- * @param speed 
- * @param traction_handle 
- * @return esp_err_t 
- */
-esp_err_t traction_set_turn_left_forward(traction_control_handle_t *traction_handle);
-
-/**
- * @brief 
- * 
- * @param speed 
- * @param traction_handle 
- * @return esp_err_t 
- */
-esp_err_t traction_set_turn_right_forward(traction_control_handle_t *traction_handle);
-
-
-/**
- * @brief 
- * 
- * @param speed 
- * @param traction_handle 
- * @return esp_err_t 
- */
-esp_err_t traction_set_turn_right_reverse(traction_control_handle_t *traction_handle);
-
-/**
- * @brief 
- * 
- * @param speed 
- * @param traction_handle 
- * @return esp_err_t 
- */
-esp_err_t traction_set_turn_left_reverse(traction_control_handle_t *traction_handle);
+esp_err_t traction_set_direction(const motor_state_e direction);
 
 /**
  * @brief Once the task is started the traction motors will begin to move according to the speed and direciton indicated
  * 
- * @param traction_handle 
  * @return esp_err_t 
  */
-esp_err_t traction_task_start(traction_control_handle_t *traction_handle);
+esp_err_t traction_task_start(void);
 
 
 #endif

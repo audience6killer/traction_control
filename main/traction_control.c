@@ -25,7 +25,9 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
-static const char *TAG = "TRACTION_CTRL";
+static traction_control_handle_t *traction_handle = NULL;
+
+static const char TAG[] = "TRACTION_CTRL";
 
 /**
  * @brief Traction PID loop: will calculate every BDC_PID_LOOP_PERIOD_MS the
@@ -39,10 +41,7 @@ static void pid_loop_callback(void *args)
     static int motor_right_last_pulse_count = 0;
     static motor_state_e last_traction_state = BREAK;
 
-    static int motor_left_desired_speed = 0;
-    static int motor_right_desired_speed = 0;
-
-    traction_control_handle_t *traction_handle = (traction_control_handle_t *)args;
+    // traction_control_handle_t *traction_handle = (traction_control_handle_t *)args;
 
     motor_control_context_t *motor_right_ctx = &traction_handle->motor_right_ctx;
     motor_control_context_t *motor_left_ctx = &traction_handle->motor_left_ctx;
@@ -66,8 +65,6 @@ static void pid_loop_callback(void *args)
     traction_handle->motor_left_ctx.report_pulses = motor_left_real_pulses;
 
     /* Check whether the state has changed */
-    motor_left_desired_speed = motor_left_ctx->desired_speed;
-    motor_right_desired_speed = motor_right_ctx->desired_speed;
 
     if (last_traction_state != traction_handle->traction_state)
     {
@@ -146,7 +143,7 @@ static void pid_loop_callback(void *args)
     bdc_motor_set_speed(motor_left_ctx->motor, (uint32_t)motor_left_new_speed);
 }
 
-esp_err_t traction_set_motors_desired_speed(const int motor_left_speed, const int motor_right_speed, traction_control_handle_t *traction_handle)
+esp_err_t traction_set_motors_desired_speed(const int motor_left_speed, const int motor_right_speed)
 {
     if (motor_left_speed < MOTOR_LEFT_MAX_SPEED)
     {
@@ -160,20 +157,32 @@ esp_err_t traction_set_motors_desired_speed(const int motor_left_speed, const in
     return ESP_OK;
 }
 
-esp_err_t traction_set_desired_speed(const int speed, traction_control_handle_t *traction_handle)
+esp_err_t traction_set_desired_speed(const float speed)
 {
     // traction_handle->mov_speed = malloc(size(int));
-    if (speed <= MAX(MOTOR_LEFT_MAX_SPEED, MOTOR_RIGHT_MAX_SPEED))
+    if (speed <= MAX(MOTOR_RIGHT_MAX_SPEED_REVS, MOTOR_LEFT_MAX_SPEED_REVS))
     {
+        int motor_right_pulses = (int)floor(MOTOR_RIGHT_REVS2PULSES * speed);
+        int motor_left_pulses = (int)floor(MOTOR_LEFT_REV2PULSES * speed);
         traction_handle->mov_speed = speed;
-        traction_set_motors_desired_speed(speed, speed, traction_handle);
+        traction_set_motors_desired_speed(motor_left_pulses, motor_right_pulses);
+    }
+    else
+    {
+        ESP_LOGW(TAG, "Specified speed was out of bounds");
     }
 
     return ESP_OK;
 }
 
-esp_err_t traction_control_init(const traction_control_config_t *motor_config, const pid_config_t *motor_left_pid_gains, const pid_config_t *motor_right_pid_gains, traction_control_handle_t *traction_handle)
+esp_err_t traction_control_init(const traction_control_config_t *motor_config, const pid_config_t *motor_left_pid_gains, const pid_config_t *motor_right_pid_gains)
 {
+    if(traction_handle == NULL)
+    {
+        ESP_LOGE(TAG, "traction_handle is null while init task");
+        return ESP_FAIL;
+    }
+
     traction_handle->motor_left_ctx.pcnt_encoder = NULL;
     traction_handle->motor_right_ctx.pcnt_encoder = NULL;
 
@@ -320,65 +329,10 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
     return ESP_OK;
 }
 
-esp_err_t traction_set_forward(traction_control_handle_t *traction_handle)
-{
-    traction_handle->traction_state = FORWARD;
-
-    return ESP_OK;
-}
-
-esp_err_t traction_set_reverse(traction_control_handle_t *traction_handle)
-{
-    traction_handle->traction_state = REVERSE;
-
-    return ESP_OK;
-}
-
-esp_err_t traction_set_break(traction_control_handle_t *traction_handle)
-{
-    traction_handle->traction_state = BREAK;
-
-    return ESP_OK;
-}
-
-esp_err_t traction_set_coast(traction_control_handle_t *traction_handle)
-{
-    traction_handle->traction_state = COAST;
-
-    return ESP_OK;
-}
-
-esp_err_t traction_set_turn_left_forward(traction_control_handle_t *traction_handle)
-{
-    traction_handle->traction_state = TURN_LEFT_FORWARD;
-
-    return ESP_OK;
-}
-
-esp_err_t traction_set_turn_right_forward(traction_control_handle_t *traction_handle)
-{
-    traction_handle->traction_state = TURN_RIGHT_FORWARD;
-
-    return ESP_OK;
-}
-
-esp_err_t traction_set_turn_right_reverse(traction_control_handle_t *traction_handle)
-{
-    traction_handle->traction_state = TURN_RIGHT_REVERSE;
-
-    return ESP_OK;
-}
-
-esp_err_t traction_set_turn_left_reverse(traction_control_handle_t *traction_handle)
-{
-    traction_handle->traction_state = TURN_LEFT_REVERSE;
-
-    return ESP_OK;
-}
-
 static void traction_control_task(void *pvParameter)
 {
-    traction_control_handle_t *traction_handle = (traction_control_handle_t *)pvParameter;
+    // Init traction_handle pointer
+    traction_handle = (traction_control_handle_t *)malloc(sizeof(traction_control_handle_t));
 
     traction_handle->traction_state = BREAK;
 
@@ -406,9 +360,9 @@ static void traction_control_task(void *pvParameter)
         .kd = MOTOR_RIGHT_KD,
     };
 
-    traction_control_init(&traction_config, &motor_left_pid_config, &motor_right_pid_config, traction_handle);
+    traction_control_init(&traction_config, &motor_left_pid_config, &motor_right_pid_config);
 
-    traction_set_desired_speed(0, traction_handle); // Init to zero the speed
+    traction_set_desired_speed(0); // Init to zero the speed
 
     ESP_ERROR_CHECK(pcnt_unit_enable(traction_handle->motor_left_ctx.pcnt_encoder));
     ESP_ERROR_CHECK(pcnt_unit_enable(traction_handle->motor_right_ctx.pcnt_encoder));
@@ -443,20 +397,32 @@ static void traction_control_task(void *pvParameter)
 
     for (;;)
     {
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(1000));
 
 #if SERIAL_DEBUG_ENABLE
 
-        printf("/*desired_speed:%d, speed_left,%d; speed_right, %d*/\r\n", traction_handle->mov_speed, traction_handle->motor_left_ctx.report_pulses, traction_handle->motor_right_ctx.report_pulses);
+        printf("/*left_desired_speed:%d, speed_left,%d; right_des_speed: %d, speed_right, %d*/\r\n", traction_handle->motor_left_ctx.desired_speed, traction_handle->motor_left_ctx.report_pulses, traction_handle->motor_right_ctx.desired_speed, traction_handle->motor_right_ctx.report_pulses);
 
 #endif
     }
 }
 
-esp_err_t traction_task_start(traction_control_handle_t *traction_handle)
+esp_err_t traction_set_direction(const motor_state_e direction)
 {
-    ESP_LOGI(TAG, "traction_control: Creating task");
-    xTaskCreatePinnedToCore(&traction_control_task, "traction_task", 4096, traction_handle, TRACTION_CONTROL_TASK_PRIORITY, NULL, TRACTION_CONTROL_CORE_ID);
+    if(traction_handle == NULL)
+    {
+        ESP_LOGE(TAG, "traction_handle is NULL, cannot assign direction");   
+        return ESP_FAIL;
+    }
+
+    traction_handle->traction_state = direction;
+    return ESP_OK;
+}
+
+esp_err_t traction_task_start(void)
+{
+    ESP_LOGI(TAG, "Starting traction task");
+    xTaskCreatePinnedToCore(&traction_control_task, "traction_task", 4096, NULL, TRACTION_CONTROL_TASK_PRIORITY, NULL, TRACTION_CONTROL_CORE_ID);
 
     return ESP_OK;
 }
