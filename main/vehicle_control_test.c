@@ -14,9 +14,12 @@ static void vehicle_control_test_task(void *pvParameters)
 {
     const float traction_speed = 1.688;
     traction_set_desired_speed(traction_speed);
+    ESP_LOGI(TAG, "FORWARD");
+    ESP_ERROR_CHECK(traction_set_direction(FORWARD));
     for (;;)
     {
-        ESP_LOGI(TAG, "FORWARD");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        /*ESP_LOGI(TAG, "FORWARD");
         ESP_ERROR_CHECK(traction_set_direction(FORWARD));
         vTaskDelay(pdMS_TO_TICKS(5000));
         ESP_LOGI(TAG, "BREAK");
@@ -42,7 +45,7 @@ static void vehicle_control_test_task(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(5000));
         ESP_LOGI(TAG, "TURN RIGHT REVERSE");
         ESP_ERROR_CHECK(traction_set_direction(TURN_RIGHT_REVERSE));
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(5000));*/
     }
 }
 
