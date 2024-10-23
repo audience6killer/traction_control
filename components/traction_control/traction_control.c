@@ -25,9 +25,12 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
+static const char TAG[] = "TRACTION_CTRL";
+
 static traction_control_handle_t *traction_handle = NULL;
 
-static const char TAG[] = "TRACTION_CTRL";
+static QueueHandle_t traction_control_queue_handle;
+
 
 /**
  * @brief Traction PID loop: will calculate every BDC_PID_LOOP_PERIOD_MS the
@@ -329,6 +332,16 @@ esp_err_t traction_control_init(const traction_control_config_t *motor_config, c
     return ESP_OK;
 }
 
+esp_err_t get_traction_data(traction_control_data_t *data)
+{
+    data->motor_left_real_pulses = traction_handle->motor_left_ctx.report_pulses;
+    data->motor_right_real_pulses = traction_handle->motor_right_ctx.report_pulses;
+    data->motor_left_desired_speed = traction_handle->motor_left_ctx.desired_speed;
+    data->motor_right_desired_speed = traction_handle->motor_right_ctx.desired_speed;
+
+    return ESP_OK;
+}
+
 static void traction_control_task(void *pvParameter)
 {
     // Init traction_handle pointer
@@ -395,11 +408,21 @@ static void traction_control_task(void *pvParameter)
     ESP_LOGI(TAG, "Start motor speed loop");
     ESP_ERROR_CHECK(esp_timer_start_periodic(pid_loop_timer, BDC_PID_LOOP_PERIOD_MS * 1000));
 
+    // Setting up queue
+    traction_control_queue_handle = xQueueCreate(4, sizeof(traction_control_data_t));
+
+    traction_control_data_t traction_data;
+
     for (;;)
     {
+        get_traction_data(&traction_data);
+        if(xQueueSend(traction_control_queue_handle, &traction_data, portMAX_DELAY) != pdPASS)
+        {
+            ESP_LOGE(TAG, "Error sending data to the queue!");
+        }
         vTaskDelay(pdMS_TO_TICKS(1000));
 
-#if SERIAL_DEBUG_ENABLE
+#if FALSE 
 
         printf("/*left_desired_speed:%d, speed_left,%d; right_des_speed: %d, speed_right, %d*/\r\n", traction_handle->motor_left_ctx.desired_speed, traction_handle->motor_left_ctx.report_pulses, traction_handle->motor_right_ctx.desired_speed, traction_handle->motor_right_ctx.report_pulses);
 

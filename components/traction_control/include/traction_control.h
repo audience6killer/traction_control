@@ -61,6 +61,17 @@ typedef struct {
     float mov_speed; // Should be always positive
 } traction_control_handle_t;
 
+typedef struct {
+    int motor_left_real_pulses;
+    int motor_right_real_pulses;
+    int motor_left_desired_speed;
+    int motor_right_desired_speed;
+    float motor_left_error;
+    float motor_right_error;
+    float motor_right_new_speed;
+    float motor_left_new_speed;
+} traction_control_data_t;
+
 /**
  * @brief Set traction speed. This speed value will apply for both motors
  * 

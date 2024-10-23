@@ -2,6 +2,7 @@
 
 #include "tasks_common.h"
 #include "traction_control.h"
+#include "seed_dispenser_control.h"
 #include "vehicle_control_test.h"
 
 void app_main(void)
